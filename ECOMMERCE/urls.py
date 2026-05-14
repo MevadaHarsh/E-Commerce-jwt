@@ -20,6 +20,8 @@ from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshVie
 from ecom_app.views import *
 from django.views.generic import TemplateView
 from rest_framework.routers import DefaultRouter
+from django.conf.urls.static import static
+
 
 
 router = DefaultRouter()
@@ -82,3 +84,6 @@ urlpatterns = [
     # path('api/order-list/', Orderlist.as_view(), name='order-list'),
     
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
