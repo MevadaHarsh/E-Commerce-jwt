@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout – TechZone</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background: #f5f7fb;
+    }
+
+    /* ---- STEP TRACKER ---- */
+    .step-tracker {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      flex: 1;
+    }
+    .step-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px solid #dee2e6;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: .85rem;
+      color: #adb5bd;
+      transition: .3s;
+      z-index: 1;
+    }
+    .step.done .step-circle {
+      background: #198754;
+      border-color: #198754;
+      color: #fff;
+    }
+    .step.active .step-circle {
+      background: #ffc107;
+      border-color: #ffc107;
+      color: #212529;
+    }
+    .step-label {
+      font-size: .72rem;
+      color: #6c757d;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .step.active .step-label { color: #212529; font-weight: 700; }
+    .step.done .step-label  { color: #198754; }
+
+    .step-line {
+      height: 2px;
+      flex: 1;
+      background: #dee2e6;
+      margin-bottom: 22px;
+    }
+    .step-line.done { background: #198754; }
+
+    /* ---- CARDS ---- */
+    .checkout-card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.07);
+    }
+
+    /* ---- PAYMENT OPTION ---- */
+    .payment-option {
+      border: 2px solid #dee2e6;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: .2s;
+      background: #fff;
+    }
+    .payment-option:hover {
+      border-color: #ffc107;
+      background: #fffbf0;
+    }
+    .payment-option input[type="radio"] { display: none; }
+    .payment-option.selected {
+      border-color: #ffc107;
+      background: #fff8e1;
+    }
+    .payment-option .check-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #dee2e6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .7rem;
+      color: transparent;
+      transition: .2s;
+      flex-shrink: 0;
+    }
+    .payment-option.selected .check-icon {
+      background: #ffc107;
+      border-color: #ffc107;
+      color: #212529;
+    }
+
+    /* ---- ORDER SUMMARY ---- */
+    .summary-item {
+      border-bottom: 1px dashed #dee2e6;
+      padding-bottom: .75rem;
+      margin-bottom: .75rem;
+    }
+    .summary-item:last-child {
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* ---- COD BADGE ---- */
+    .cod-ribbon {
+      background: linear-gradient(135deg, #ffc107, #ff9800);
+      color: #212529;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: .5px;
+    }
+
+    /* ---- PLACE ORDER BTN ---- */
+    #placeOrderBtn {
+      background: linear-gradient(135deg, #ffc107, #ff9800);
+      border: none;
+      color: #212529;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: .3px;
+      border-radius: 12px;
+      padding: .75rem 1.5rem;
+      transition: .2s;
+    }
+    #placeOrderBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255,193,7,.4);
+    }
+    #placeOrderBtn:disabled {
+      opacity: .6;
+      transform: none;
+    }
+
+    /* ---- FIELD STYLES ---- */
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1.5px solid #e0e0e0;
+      padding: .6rem .9rem;
+      transition: .2s;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #ffc107;
+      box-shadow: 0 0 0 3px rgba(255,193,7,.18);
+    }
+    .form-label {
+      font-weight: 600;
+      font-size: .85rem;
+      color: #495057;
+    }
+
+    /* ---- SUCCESS OVERLAY ---- */
+    #successOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    #successOverlay.show { display: flex; }
+    .success-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      animation: popIn .35s ease;
+    }
+    @keyframes popIn {
+      from { transform: scale(.8); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .success-icon {
+      width: 72px;
+      height: 72px;
+      background: #d1fae5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      font-size: 2rem;
+      color: #059669;
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 767px) {
+      .step-label { font-size: .62rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/">
+      <i class="bi bi-cpu-fill text-warning me-2"></i>TechZone
+    </a>
+    <a href="/" class="btn btn-outline-light btn-sm ms-auto">
+      <i class="bi bi-arrow-left me-1"></i> Continue Shopping
+    </a>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="bg-dark text-white py-4">
+  <div class="container">
+    <h4 class="fw-bold mb-0"><i class="bi bi-bag-check-fill text-warning me-2"></i>Checkout</h4>
+    <p class="text-secondary mb-0 small mt-1">Almost there — complete your order below</p>
+  </div>
+</div>
+
+<!-- STEP TRACKER -->
+<div class="bg-white border-bottom py-3 shadow-sm">
+  <div class="container">
+    <div class="step-tracker px-2">
+      <div class="step done" id="step1">
+        <div class="step-circle"><i class="bi bi-cart-check-fill"></i></div>
+        <div class="step-label">Cart</div>
+      </div>
+      <div class="step-line done"></div>
+      <div class="step active" id="step2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Details</div>
+      </div>
+      <div class="step-line" id="line2"></div>
+      <div class="step" id="step3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Payment</div>
+      </div>
+      <div class="step-line" id="line3"></div>
+      <div class="step" id="step4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Confirm</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container py-5">
+  <div class="row g-4">
+
+    <!-- LEFT: FORM -->
+    <div class="col-lg-7">
+
+      <!-- DELIVERY DETAILS -->
+      <div class="card checkout-card mb-4">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-4">
+            <span class="badge bg-warning text-dark me-2">1</span>
+            Delivery Details
+          </h5>
+
+          <div class="mb-3">
+            <label class="form-label" for="fullName">
+              <i class="bi bi-person me-1 text-warning"></i> Full Name
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="fullName"
+              placeholder="e.g. Harsh Mevada"
+              required
+            />
+            <div class="invalid-feedback">Please enter your name.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="phone">
+              <i class="bi bi-telephone me-1 text-warning"></i> Phone Number
+            </label>
+            <div class="input-group">
+              <span class="input-group-text rounded-start-3 bg-light fw-semibold">+91</span>
+              <input
+                type="tel"
+                class="form-control"
+                id="phone"
+                placeholder="98765 43210"
+                maxlength="10"
+                required
+              />
+            </div>
+            <div class="invalid-feedback">Enter a valid 10-digit phone number.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="address">
+              <i class="bi bi-house me-1 text-warning"></i> Address
+            </label>
+            <textarea
+              class="form-control"
+              id="address"
+              rows="2"
+              placeholder="House / Flat No., Street, Area"
+              required
+            ></textarea>
+            <div class="invalid-feedback">Please enter your address.</div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-sm-5">
+              <label class="form-label" for="city">
+                <i class="bi bi-building me-1 text-warning"></i> City
+              </label>
+              <input type="text" class="form-control" id="city" placeholder="Ahmedabad" required />
+              <div class="invalid-feedback">Enter city.</div>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label" for="state">State</label>
+              <input type="text" class="form-control" id="state" placeholder="e.g. Gujarat" required />
+              <div class="invalid-feedback">Enter state.</div>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label" for="zip">
+                <i class="bi bi-geo me-1 text-warning"></i> PIN Code
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="zip"
+                placeholder="380001"
+                maxlength="6"
+                required
+              />
+              <div class="invalid-feedback">Enter 6-digit PIN.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PAYMENT MODE -->
+      <div class="card checkout-card">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-4">
+            <span class="badge bg-warning text-dark me-2">2</span>
+            Payment Mode
+          </h5>
+
+          <!-- Cash on Delivery (only option) -->
+          <div class="payment-option selected p-3 d-flex align-items-center gap-3" id="opt-cod">
+            <div class="check-icon"><i class="bi bi-check-lg"></i></div>
+            <div class="d-flex align-items-center gap-2 flex-grow-1">
+              <i class="bi bi-cash-stack fs-4 text-success"></i>
+              <div>
+                <div class="fw-bold">Cash on Delivery</div>
+                <div class="text-muted small">Pay when your order arrives at your doorstep</div>
+              </div>
+            </div>
+            <span class="cod-ribbon">COD</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: ORDER SUMMARY -->
+    <div class="col-lg-5">
+      <div class="card checkout-card sticky-top" style="top: 90px;">
+        <div class="card-body p-4">
+
+          <h5 class="fw-bold mb-4">
+            <i class="bi bi-receipt me-2 text-warning"></i>Order Summary
+          </h5>
+
+          <!-- Items will be injected by JS; static fallback shown below -->
+          <div id="orderItems">
+            <div class="summary-item">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">Loading cart…</div>
+                  <small class="text-muted">Qty: —</small>
+                </div>
+                <span class="fw-bold text-success">—</span>
+              </div>
+            </div>
+          </div>
+
+          <hr />
+
+          <div class="d-flex justify-content-between text-muted small mb-2">
+            <span>Subtotal</span>
+            <span id="subtotal">—</span>
+          </div>
+          <div class="d-flex justify-content-between text-muted small mb-2">
+            <span>Delivery Charges</span>
+            <span class="text-success fw-semibold" id="delivery">FREE</span>
+          </div>
+          <div class="d-flex justify-content-between text-muted small mb-3">
+            <span>Discount</span>
+            <span id="discount">—</span>
+          </div>
+
+          <div class="d-flex justify-content-between fw-bold fs-5 mb-4">
+            <span>Total</span>
+            <span class="text-success" id="grandTotal">—</span>
+          </div>
+
+          <!-- COD Notice -->
+          <div class="alert alert-warning py-2 px-3 small mb-4 d-flex gap-2 align-items-center" id="codNotice">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>Cash on Delivery selected — pay when your order arrives.</span>
+          </div>
+
+          <button
+            class="btn w-100 py-3"
+            id="placeOrderBtn"
+            onclick="placeOrder()"
+          >
+            <i class="bi bi-bag-check-fill me-2"></i>Place Order
+          </button>
+
+          <p class="text-center text-muted small mt-3 mb-0">
+            <i class="bi bi-shield-lock me-1 text-success"></i>
+            Secured with 256-bit SSL encryption
+          </p>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div id="successOverlay">
+  <div class="success-box" style="max-width:440px;">
+    <div class="success-icon">
+      <i class="bi bi-check-lg"></i>
+    </div>
+    <h4 class="fw-bold mb-1">Order Placed! 🎉</h4>
+    <p class="text-muted small mb-3">Thank you for shopping with <span class="fw-bold text-warning">TechZone</span>.</p>
+
+    <!-- Order items from API -->
+    <div id="successItems" class="text-start border rounded-3 p-3 mb-3 bg-light" style="max-height:180px;overflow-y:auto;"></div>
+
+    <!-- Subtotal from API -->
+    <div class="d-flex justify-content-between fw-bold fs-6 border-top pt-3 mb-4 px-1">
+      <span>Total Paid</span>
+      <span class="text-success" id="successTotal">—</span>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-center">
+      <a href="/" class="btn btn-warning fw-semibold px-4">Back to Home</a>
+      <button class="btn btn-outline-secondary px-4" onclick="closeOverlay()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* ---------- AUTH ---------- */
+function getToken() {
+  return localStorage.getItem('access');
+}
+
+/* ---------- LOAD CART SUMMARY ---------- */
+async function loadSummary() {
+  const token = getToken();
+  if (!token) {
+    document.getElementById('orderItems').innerHTML =
+      `<p class="text-muted small">No items. <a href="/">Go back to shop</a>.</p>`;
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/cart/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+
+    // API shape: { message, cart_item: [...], subtotal }
+    const items    = data.cart_item || [];
+    const subtotal = data.subtotal  || 0;
+
+    let html = '';
+
+    if (!items.length) {
+      html = `<p class="text-muted small">Cart is empty. <a href="/">Shop now</a>.</p>`;
+    } else {
+      items.forEach(item => {
+        html += `
+          <div class="summary-item">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <div class="bg-warning bg-opacity-10 rounded-3 p-2">
+                  <i class="bi bi-box-seam text-warning"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold small">${item.product_name}</div>
+                  <small class="text-muted">Qty: ${item.quantity}</small>
+                </div>
+              </div>
+              <span class="badge bg-dark text-light rounded-pill px-2">COD</span>
+            </div>
+          </div>`;
+      });
+    }
+
+    document.getElementById('orderItems').innerHTML = html;
+    document.getElementById('subtotal').textContent   = `₹${Number(subtotal).toLocaleString('en-IN')}`;
+    document.getElementById('discount').textContent   = '—';
+    document.getElementById('grandTotal').textContent = `₹${Number(subtotal).toLocaleString('en-IN')}`;
+
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/* ---------- VALIDATION ---------- */
+function validateForm() {
+  let valid = true;
+
+  const fields = [
+    { id: 'fullName', check: v => v.trim().length >= 2 },
+    { id: 'phone',    check: v => /^\d{10}$/.test(v.trim()) },
+    { id: 'address',  check: v => v.trim().length >= 5 },
+    { id: 'city',     check: v => v.trim().length >= 2 },
+    { id: 'state',    check: v => v.trim().length >= 2 },
+    { id: 'zip',      check: v => /^\d{6}$/.test(v.trim()) },
+  ];
+
+  fields.forEach(f => {
+    const el = document.getElementById(f.id);
+    const ok = f.check(el.value);
+    el.classList.toggle('is-invalid', !ok);
+    el.classList.toggle('is-valid',    ok);
+    if (!ok) valid = false;
+  });
+
+  return valid;
+}
+
+/* ---------- PLACE ORDER ---------- */
+async function placeOrder() {
+  if (!validateForm()) {
+    document.querySelector('.is-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Placing Order…`;
+
+  const token = getToken();
+
+  try {
+    const res = await fetch('/api/checkout/', {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        full_name : document.getElementById('fullName').value.trim(),
+        phone     : document.getElementById('phone').value.trim(),
+        address   : document.getElementById('address').value.trim(),
+        city      : document.getElementById('city').value.trim(),
+        pincode   : document.getElementById('zip').value.trim(),
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showSuccess(data);
+      loadSummary();
+    } else {
+      alert(data.message || "Failed to place order ❌");
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-bag-check-fill me-2"></i>Place Order`;
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Something went wrong while placing order");
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-bag-check-fill me-2"></i>Place Order`;
+  }
+}
+
+/* ---------- SUCCESS ---------- */
+function showSuccess(data) {
+  // Render ordered items from API response
+  const items = data.cart_item || [];
+  const subtotal = data.subtotal || 0;
+
+  let itemsHtml = items.map(item => `
+    <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+      <div>
+        <div class="fw-semibold small">${item.product_name}</div>
+        <small class="text-muted">Qty: ${item.quantity}</small>
+      </div>
+      <span class="badge bg-success-subtle text-success fw-semibold">COD</span>
+    </div>
+  `).join('');
+
+  if (!itemsHtml) {
+    itemsHtml = `<p class="text-muted small mb-0">No item details available.</p>`;
+  }
+
+  document.getElementById('successItems').innerHTML = itemsHtml;
+  document.getElementById('successTotal').textContent = `₹${Number(subtotal).toLocaleString('en-IN')}`;
+
+  document.getElementById('successOverlay').classList.add('show');
+  ['step3','step4'].forEach(s => document.getElementById(s).classList.add('done'));
+  ['line2','line3'].forEach(l => document.getElementById(l).classList.add('done'));
+}
+
+function closeOverlay() {
+  document.getElementById('successOverlay').classList.remove('show');
+}
+
+/* ---------- INIT ---------- */
+loadSummary();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Delivery Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+</head>
+
+<body class="bg-light">
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-dark bg-dark px-4 d-flex justify-content-between align-items-center">
+  <a class="navbar-brand fw-bold" href="#">
+    <i class="bi bi-truck text-warning me-2"></i>
+    Delivery Dashboard
+  </a>
+  <div class="d-flex align-items-center gap-3">
+    <div id="partnerInfo" class="d-none d-flex align-items-center gap-2">
+      <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold"
+           style="width:32px;height:32px;font-size:.75rem;" id="partnerAvatar">--</div>
+      <div>
+        <div class="text-white small fw-semibold" id="partnerUsername"></div>
+        <div id="partnerAvailBadge"></div>
+      </div>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="container py-4">
+
+  <!-- PENDING APPROVAL -->
+  <div id="pendingBox" class="d-none">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-clock-history display-3 text-warning"></i>
+        <h3 class="mt-3 fw-bold">Verification Pending</h3>
+        <p class="text-muted mb-0">
+          Your delivery partner account is under review.
+          Please wait for admin approval.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboardBox" class="d-none">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold mb-1">Delivery Orders</h3>
+        <p class="text-muted mb-0">Orders assigned to you</p>
+      </div>
+      <button class="btn btn-dark" onclick="fetchOrders()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+    </div>
+
+    <!-- STATS -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h6 class="text-muted">Total Orders</h6>
+            <h2 id="totalOrders">0</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h6 class="text-muted">Pending</h6>
+            <h2 id="pendingOrders">0</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h6 class="text-muted">Delivered</h6>
+            <h2 id="deliveredOrders">0</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h6 class="text-muted">Cancelled</h6>
+            <h2 id="cancelledOrders">0</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>Address</th>
+              <th>City / Pin</th>
+              <th>Total</th>
+              <th>Partner</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CANCEL MODAL -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Cancel Order</h5>
+        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">Please provide a reason for cancelling this order.</p>
+        <label class="form-label fw-semibold">Reason <span class="text-danger">*</span></label>
+        <textarea id="cancelReason" class="form-control" rows="3"
+                  placeholder="e.g. Customer not available, Wrong address..."></textarea>
+        <div id="cancelReasonError" class="text-danger small mt-1 d-none">Reason is required.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-danger" onclick="confirmCancel()">
+          <i class="bi bi-x-circle me-1"></i>Confirm Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+
+const PROFILE_API = '/api/user/';
+const ORDERS_API  = '/api/DeliveryPartner/';
+const DELIVER_API = '/api/Order-status/';
+
+let orders = [];
+let cancelTargetId      = null;
+let cancelModalInstance = null;
+
+/* ---------- AUTH ---------- */
+function apiHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('access')}`
+  };
+}
+
+/* ---------- CHECK ROLE ---------- */
+async function checkDeliveryAccess() {
+  try {
+    const res  = await fetch(PROFILE_API, { headers: apiHeaders() });
+    const user = await res.json();
+    if (user.role === 'Delivery') {
+      document.getElementById('dashboardBox').classList.remove('d-none');
+      fetchOrders();
+    } else {
+      document.getElementById('pendingBox').classList.remove('d-none');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Failed to load profile');
+  }
+}
+
+/* ---------- FETCH ORDERS ---------- */
+/*
+  API returns an ARRAY:
+  [
+    {
+      user: 41,
+      is_available: true,
+      username: "lost1",
+      checkout_list: [
+        { id, partner_name, full_name, phone, address,
+          city, pincode, total_price, status, quantity,
+          delivery_partner, created_at, Product, user }
+      ]
+    }
+  ]
+*/
+async function fetchOrders() {
+  try {
+    const res  = await fetch(ORDERS_API, { headers: apiHeaders() });
+    const data = await res.json();
+
+    /* data is an array — grab the first element */
+    const partnerData = Array.isArray(data) ? data[0] : data;
+
+    if (!partnerData) {
+      console.warn('Empty response from API');
+      return;
+    }
+
+    /* extract orders list and partner meta */
+    orders = partnerData.checkout_list || [];
+    showPartnerInfo(partnerData);
+    renderOrders();
+
+  } catch (err) {
+    console.error(err);
+    alert('Failed to fetch orders');
+  }
+}
+
+/* ---------- SHOW PARTNER INFO IN NAVBAR ---------- */
+function showPartnerInfo(partnerData) {
+  const username    = partnerData.username    || 'Partner';
+  const isAvailable = partnerData.is_available;
+  const initials    = username.slice(0, 2).toUpperCase();
+
+  document.getElementById('partnerAvatar').innerText   = initials;
+  document.getElementById('partnerUsername').innerText = username;
+  document.getElementById('partnerAvailBadge').innerHTML =
+    `<span class="badge ${isAvailable ? 'bg-success' : 'bg-secondary'}" style="font-size:.65rem;">
+       <i class="bi bi-circle-fill me-1" style="font-size:.4rem;vertical-align:middle;"></i>
+       ${isAvailable ? 'Available' : 'Unavailable'}
+     </span>`;
+  document.getElementById('partnerInfo').classList.remove('d-none');
+}
+
+/* ---------- RENDER ORDERS ---------- */
+function renderOrders() {
+  document.getElementById('totalOrders').innerText     = orders.length;
+  document.getElementById('pendingOrders').innerText   = orders.filter(o => o.status === 'Pending').length;
+  document.getElementById('deliveredOrders').innerText = orders.filter(o => o.status === 'Delivered').length;
+  document.getElementById('cancelledOrders').innerText = orders.filter(o => o.status === 'Cancelled').length;
+
+  const tbody = document.getElementById('orderTableBody');
+
+  if (!orders.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" class="text-center py-4 text-muted">No orders available</td>
+      </tr>`;
+    return;
+  }
+
+  tbody.innerHTML = orders.map((o, i) => {
+
+    let badgeClass = 'bg-warning text-dark';
+    if (o.status === 'Delivered') badgeClass = 'bg-success';
+    if (o.status === 'Cancelled') badgeClass = 'bg-danger';
+
+    const isDone  = o.status === 'Delivered' || o.status === 'Cancelled';
+    const actions = isDone
+      ? `<span class="text-muted">—</span>`
+      : `<div class="d-flex gap-2">
+           <button class="btn btn-sm btn-success" onclick="markDelivered(${o.id})">
+             <i class="bi bi-check-circle me-1"></i>Delivered
+           </button>
+           <button class="btn btn-sm btn-outline-danger" onclick="openCancelModal(${o.id})">
+             <i class="bi bi-x-circle me-1"></i>Cancel
+           </button>
+         </div>`;
+
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td><span class="badge bg-secondary">#${o.id}</span></td>
+        <td class="fw-semibold">${o.full_name || '-'}</td>
+        <td>${o.phone || '-'}</td>
+        <td>${o.address || '-'}</td>
+        <td>
+          <div>${o.city || '-'}</div>
+          <small class="text-muted">${o.pincode || ''}</small>
+        </td>
+        <td class="fw-semibold">₹${o.total_price || 0}</td>
+        <td>
+          <span class="badge bg-dark">
+            <i class="bi bi-person-badge me-1"></i>${o.partner_name || '-'}
+          </span>
+        </td>
+        <td><span class="badge ${badgeClass}">${o.status}</span></td>
+        <td>${actions}</td>
+      </tr>`;
+  }).join('');
+}
+
+/* ---------- MARK DELIVERED ---------- */
+async function markDelivered(id) {
+  if (!confirm('Mark this order as Delivered?')) return;
+  try {
+    const res = await fetch(DELIVER_API + id + '/', {
+      method: 'PATCH',
+      headers: apiHeaders(),
+      body: JSON.stringify({ status: 'Delivered' })
+    });
+    res.ok ? fetchOrders() : alert('Failed to update order');
+  } catch (err) {
+    console.error(err);
+    alert('Something went wrong');
+  }
+}
+
+/* ---------- OPEN CANCEL MODAL ---------- */
+function openCancelModal(id) {
+  cancelTargetId = id;
+  document.getElementById('cancelReason').value = '';
+  document.getElementById('cancelReasonError').classList.add('d-none');
+  cancelModalInstance = new bootstrap.Modal(document.getElementById('cancelModal'));
+  cancelModalInstance.show();
+}
+
+/* ---------- CONFIRM CANCEL ---------- */
+async function confirmCancel() {
+  const reason = document.getElementById('cancelReason').value.trim();
+  if (!reason) {
+    document.getElementById('cancelReasonError').classList.remove('d-none');
+    return;
+  }
+  document.getElementById('cancelReasonError').classList.add('d-none');
+  try {
+    const res = await fetch(DELIVER_API + cancelTargetId + '/', {
+      method: 'PATCH',
+      headers: apiHeaders(),
+      body: JSON.stringify({ status: 'Cancelled', cancel_reason: reason })
+    });
+    if (res.ok) {
+      cancelModalInstance.hide();
+      fetchOrders();
+    } else {
+      const data = await res.json();
+      alert(data.message || 'Failed to cancel order');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Something went wrong');
+  }
+}
+
+/* ---------- LOGOUT ---------- */
+function logout() {
+  localStorage.removeItem('access');
+  localStorage.removeItem('refresh');
+  window.location.href = '/login/';
+}
+
+/* ---------- INIT ---------- */
+checkDeliveryAccess();
+
+</script>
+</body>
+</html>

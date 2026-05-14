@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin - Orders</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+
+<style>
+body {
+  background: #f4f5f7;
+}
+
+.card-box {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+</style>
+</head>
+
+<body>
+
+
+<nav class="navbar navbar-dark bg-dark px-3 py-2 sticky-top shadow-sm">
+  <button class="btn btn-sm btn-outline-secondary me-3" id="sidebarToggle"><i class="bi bi-list fs-5"></i></button>
+  <a class="navbar-brand fw-bold" href="#"><i class="bi bi-cpu-fill text-warning me-2"></i>TechZone <span class="text-warning">Admin</span></a>
+  <div class="ms-auto d-flex align-items-center gap-3">
+    <span class="badge bg-warning text-dark"><i class="bi bi-bell-fill me-1"></i>3</span>
+    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold" style="width:34px;height:34px;font-size:.8rem;">AD</div>
+  </div>
+</nav>
+
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+  <div class="bg-dark text-white d-flex flex-column flex-shrink-0" id="sidebar" style="width:240px;min-height:100%;transition:width .2s;">
+    <div class="p-3 border-bottom border-secondary">
+      <small class="text-secondary text-uppercase fw-semibold" style="letter-spacing:.08rem;font-size:.68rem;">Main Menu</small>
+    </div>
+    <ul class="nav flex-column p-2 gap-1">
+      {% comment %} <li><a href="#" class="nav-link text-secondary rounded-2 px-3 py-2"><i class="bi bi-speedometer2 me-2"></i><span class="sidebar-label">Dashboard</span></a></li> {% endcomment %}
+      <li><a href="{% url 'category-admin' %}" class="nav-link text-secondary rounded-2 px-3 py-2"><i class="bi bi-grid  me-2"></i><span class="sidebar-label">Categories</span></a></li>
+      <li><a href="{% url 'product-admin' %}" class="nav-link text-secondary rounded-2 px-3 py-2"><i class="bi bi-box-seam me-2"></i><span class="sidebar-label">Products</span></a></li>
+      <li><a href="{% url 'order-page' %}" class="nav-link text-white bg-warning bg-opacity-10 rounded-2 px-3 py-2" ><i class="bi bi-box-seam text-warning me-2"></i><span class="sidebar-label text-warning fw-semibold">Order History</span></a></li>
+      <li class="nav-item"><a href="{% url 'partner_list' %}" class="nav-link text-secondary rounded-2 px-3 py-2"><i class="bi bi-people-fill  me-2"></i><span class=" fw-semibold">Pending Partners</span></a></li>
+
+    </ul>
+    <div class="mt-auto p-2 border-top border-secondary">
+      <a href="{% url 'login' %}"  class="nav-link text-danger rounded-2 px-3 py-2"><i class="bi bi-box-arrow-left me-2"></i><span class="sidebar-label">Logout</span></a>
+    </div>
+  </div>
+
+<div class="container mt-4">
+
+  <div class="card-box p-3">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Order List</h5>
+      <button onclick="loadOrders()" class="btn btn-sm btn-primary">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+    </div>
+
+    <table class="table table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Order ID</th>
+          <th>Full Name</th>
+          <th>Total</th>
+          <th>City</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Delivery Partner</th>
+          <th>Cancel Reason</th>
+        </tr>
+      </thead>
+
+      <tbody id="orderBody"></tbody>
+    </table>
+
+  </div>
+
+</div>
+
+<script>
+
+function getToken() {
+  return localStorage.getItem("access");
+}
+
+async function loadOrders() {
+
+  const token = getToken();
+
+  const res = await fetch("/api/checkout-view/", {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    }
+  });
+
+  const data = await res.json();
+
+  console.log("API RESPONSE:", data); // 🔥 DEBUG
+
+  const container = document.getElementById("orderBody");
+  container.innerHTML = "";
+
+  if (!res.ok) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-danger text-center">
+          ${data.detail || "Failed to load orders"}
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  // 🔥 handle both array & paginated response
+  const orders = Array.isArray(data) ? data : (data.results || []);
+
+  if (orders.length === 0) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-muted">
+          No orders found
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  orders.forEach(order => {
+
+    let itemsHTML = "";
+
+    (order.order_items || []).forEach(item => {
+      itemsHTML += `
+        <div class="small text-muted">
+          • ${item.product_name} (x${item.quantity}) - ₹${item.total_price}
+        </div>
+      `;
+    });
+
+    container.innerHTML += `
+      <tr>
+
+        <td>
+          <b>#${order.id}</b>
+          <div class="mt-2">
+            ${itemsHTML}
+          </div>
+        </td>
+
+        <td>${order.full_name || "N/A"}</td>
+
+        <td><b>₹${order.total_price || 0}</b></td>
+
+        <td>${order.city || "N/A"}</td>
+
+        <td>${formatDate(order.created_at)}</td>
+
+        <td>${order.status || "N/A"}</td>
+
+        <td>${order.partner_name || "N/A"}</td>
+
+        <td>${order.cancel_reason || "N/A"}</td>
+
+      </tr>
+    `;
+  });
+}
+
+/* STATUS COLOR */
+function getStatusColor(status) {
+
+  if (!status) return "secondary";
+
+  status = status.toLowerCase();
+
+  if (status === "pending") return "warning";
+  if (status === "completed") return "success";
+  if (status === "cancelled") return "danger";
+
+  return "secondary";
+}
+
+/* FORMAT DATE */
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleString();
+}
+
+loadOrders();
+
+</script>
+
+</body>
+</html>
