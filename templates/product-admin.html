@@ -1,245 +1,150 @@
+{% extends 'base-admin.html' %}
+{% block content %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TechZone Admin – Products</title>
 
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
+    <!-- MAIN -->
+    <div class="container-fluid py-4">
 
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    rel="stylesheet"
-  />
-</head>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">Products</h3>
 
-<body class="bg-light">
-
-<nav class="navbar navbar-dark bg-dark px-3 py-2 sticky-top shadow-sm">
-  <button class="btn btn-sm btn-outline-secondary me-3" id="sidebarToggle">
-    <i class="bi bi-list fs-5"></i>
-  </button>
-
-  <a class="navbar-brand fw-bold" href="#">
-    <i class="bi bi-cpu-fill text-warning me-2"></i>TechZone <span class="text-warning">Admin</span>
-  </a>
-
-  <div class="ms-auto d-flex align-items-center gap-3">
-    <span class="badge bg-warning text-dark">
-      <i class="bi bi-bell-fill me-1"></i>3
-    </span>
-
-    <div class="d-flex align-items-center gap-2">
-      <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold"
-           style="width:34px;height:34px;font-size:.8rem;">
-        AD
+        <button class="btn btn-warning fw-semibold" data-bs-toggle="modal" data-bs-target="#addProductModal">
+          <i class="bi bi-plus-lg me-1"></i> Add Product
+        </button>
       </div>
-      <span class="text-white small d-none d-md-inline">Admin</span>
-    </div>
-  </div>
-</nav>
 
-<div class="d-flex" style="min-height:calc(100vh - 56px);">
+      <!-- FILTER -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <div class="row g-2">
 
-  <!-- SIDEBAR -->
-  <div class="bg-dark text-white d-flex flex-column flex-shrink-0"
-       id="sidebar"
-       style="width:240px;min-height:100%;">
+            <div class="col-md-6">
+              <input type="text" id="prodSearch" class="form-control" placeholder="Search..."
+                oninput="filterProducts()" />
+            </div>
 
-    <div class="p-3 border-bottom border-secondary">
-      <small class="text-secondary text-uppercase fw-semibold">Main Menu</small>
-    </div>
+            <div class="col-md-3">
+              <select id="prodCatFilter" class="form-select" onchange="filterProducts()">
+                <option value="">All Categories</option>
+              </select>
+            </div>
 
-    <ul class="nav flex-column p-2 gap-1">
+            <div class="col-md-3 text-end">
+              <span id="prodCount" class="text-muted small"></span>
+            </div>
 
-      <li class="nav-item">
-        <a href="{% url 'category-admin' %}" class="nav-link text-secondary px-3 py-2">
-          <i class="bi bi-grid-fill me-2"></i>Categories
-        </a>
-      </li>
+          </div>
+        </div>
+      </div>
 
-      <li class="nav-item">
-        <a href="{% url 'product-admin' %}" class="nav-link text-white bg-warning bg-opacity-10 px-3 py-2">
-          <i class="bi bi-box-seam text-warning me-2"></i>
-          <span class="text-warning fw-semibold">Products</span>
-        </a>
-      </li>
+      <!-- TABLE -->
+      <div class="card border-0 shadow-sm">
 
-      <li><a href="{% url 'order-page' %}" class="nav-link text-secondary rounded-2 px-3 py-2"><i class="bi bi-box-seam me-2"></i><span class="sidebar-label">Order History</span></a></li>
-      {% comment %} <li><a href="{% url 'partner_list' %}" class="nav-link text-secondary rounded-2 px-3 py-2"><i class="bi bi-box-seam me-2"></i><span class="sidebar-label">partner list</span></a></li> {% endcomment %}
-      <li class="nav-item"><a href="{% url 'partner_list' %}" class="nav-link text-secondary rounded-2 px-3 py-2"><i class="bi bi-people-fill  me-2"></i><span class=" fw-semibold">Pending Partners</span></a></li>
+        <div class="table-responsive">
 
-    </ul>
+          <table class="table table-hover align-middle mb-0">
 
-    <div class="mt-auto p-2 border-top border-secondary">
-      <a href="{% url 'login' %}" class="nav-link text-danger px-3 py-2">
-        <i class="bi bi-box-arrow-left me-2"></i>Logout
-      </a>
-    </div>
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
 
-  </div>
+            <tbody id="prodTableBody"></tbody>
 
-  <!-- MAIN -->
-  <div class="container-fluid py-4">
+          </table>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="fw-bold mb-0">Products</h3>
+        </div>
 
-      <button class="btn btn-warning fw-semibold"
-              data-bs-toggle="modal"
-              data-bs-target="#addProductModal">
-        <i class="bi bi-plus-lg me-1"></i> Add Product
-      </button>
+      </div>
+
     </div>
 
-    <!-- FILTER -->
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body">
-        <div class="row g-2">
 
-          <div class="col-md-6">
-            <input type="text"
-                   id="prodSearch"
-                   class="form-control"
-                   placeholder="Search..."
-                   oninput="filterProducts()"/>
+    <!-- ADD MODAL -->
+    <div class="modal fade" id="addProductModal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title">Add Product</h5>
+            <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
 
-          <div class="col-md-3">
-            <select id="prodCatFilter"
-                    class="form-select"
-                    onchange="filterProducts()">
-              <option value="">All Categories</option>
-            </select>
+          <div class="modal-body">
+
+            <input class="form-control mb-2" id="newProdName" placeholder="Name">
+
+            <select class="form-select mb-2" id="newProdCat"></select>
+
+            <input type="number" class="form-control mb-2" id="newProdPrice" placeholder="Price">
+
+            <input type="number" class="form-control mb-2" id="newProdStock" placeholder="Stock">
+
           </div>
 
-          <div class="col-md-3 text-end">
-            <span id="prodCount" class="text-muted small"></span>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-warning" onclick="addProduct()">Add</button>
           </div>
 
         </div>
       </div>
+
+      <!-- EDIT MODAL -->
+      <div class="modal fade" id="editProductModal">
+        <div class="modal-dialog">
+          <div class="modal-content">
+
+            <div class="modal-header bg-dark text-white">
+              <h5>Edit Product</h5>
+              <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+              <input type="hidden" id="editProdId">
+
+              <input class="form-control mb-2" id="editProdName">
+              <select class="form-select mb-2" id="editProdCat"></select>
+              <input class="form-control mb-2" id="editProdPrice">
+
+              {% comment %} <!-- stock still available here (optional) -->
+              <input class="form-control mb-2" id="editProdStock"> {% endcomment %}
+
+            </div>
+
+            <div class="modal-footer">
+              <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-warning" onclick="saveProductEdit()">Save</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- DELETE MODAL -->
+      <div class="modal fade" id="deleteProdModal">
+        <div class="modal-dialog modal-sm">
+          <div class="modal-content">
+
+            <div class="modal-body text-center p-4">
+              <h5>Delete Product?</h5>
+
+              <input type="hidden" id="deleteProdId">
+
+              <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-danger" onclick="confirmDeleteProd()">Delete</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
-
-    <!-- TABLE -->
-    <div class="card border-0 shadow-sm">
-
-      <div class="table-responsive">
-
-        <table class="table table-hover align-middle mb-0">
-
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th class="text-center">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody id="prodTableBody"></tbody>
-
-        </table>
-
-      </div>
-
-    </div>
-
-  </div>
-</div>
-
-<!-- ADD MODAL -->
-<div class="modal fade" id="addProductModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title">Add Product</h5>
-        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-
-        <input class="form-control mb-2" id="newProdName" placeholder="Name">
-
-        <select class="form-select mb-2" id="newProdCat"></select>
-
-        <input type="number" class="form-control mb-2" id="newProdPrice" placeholder="Price">
-
-        <input type="number" class="form-control mb-2" id="newProdStock" placeholder="Stock">
-
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-warning" onclick="addProduct()">Add</button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- EDIT MODAL -->
-<div class="modal fade" id="editProductModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-
-      <div class="modal-header bg-dark text-white">
-        <h5>Edit Product</h5>
-        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-
-        <input type="hidden" id="editProdId">
-
-        <input class="form-control mb-2" id="editProdName">
-        <select class="form-select mb-2" id="editProdCat"></select>
-        <input class="form-control mb-2" id="editProdPrice">
-
-        {% comment %} <!-- stock still available here (optional) -->
-        <input class="form-control mb-2" id="editProdStock"> {% endcomment %}
-
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-warning" onclick="saveProductEdit()">Save</button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- DELETE MODAL -->
-<div class="modal fade" id="deleteProdModal">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content">
-
-      <div class="modal-body text-center p-4">
-        <h5>Delete Product?</h5>
-
-        <input type="hidden" id="deleteProdId">
-
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-danger" onclick="confirmDeleteProd()">Delete</button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script src="{% static 'js/product-admin.js' %}"></script>
-
-
-</body>
-</html>
+{% endblock content %}

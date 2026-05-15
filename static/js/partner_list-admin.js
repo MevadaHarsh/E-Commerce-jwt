@@ -20,7 +20,7 @@ async function fetchPartners() {
     renderPartners(partners);
   } catch (err) {
     console.error(err);
-    alert("Failed to fetch partners");
+    // alert("Failed to fetch partners");
   }
 }
 
@@ -109,7 +109,7 @@ async function fetchDeliveryPartners() {
     renderDeliveryPartners(deliveryPartners);
   } catch (err) {
     console.error(err);
-    alert("Failed to fetch delivery partners");
+    // alert("Failed to fetch delivery partners");
   }
 }
 

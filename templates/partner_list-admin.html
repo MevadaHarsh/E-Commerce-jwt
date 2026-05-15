@@ -1,208 +1,134 @@
+{% extends 'base-admin.html' %}
+{% block content %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TechZone Admin – Pending Partners</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
-</head>
 
-<body class="bg-light">
+    <!-- ✅ MAIN CONTENT — everything lives inside here -->
+    <div class="container-fluid py-4">
 
-<!-- NAVBAR -->
-<nav class="navbar navbar-dark bg-dark px-3 py-2 sticky-top shadow-sm">
-  <button class="btn btn-sm btn-outline-secondary me-3" id="sidebarToggle">
-    <i class="bi bi-list fs-5"></i>
-  </button>
-  <a class="navbar-brand fw-bold" href="#">
-    <i class="bi bi-cpu-fill text-warning me-2"></i>
-    TechZone <span class="text-warning">Admin</span>
-  </a>
-  <div class="ms-auto d-flex align-items-center gap-3">
-    <span class="badge bg-warning text-dark">
-      <i class="bi bi-bell-fill me-1"></i>3
-    </span>
-    <div class="d-flex align-items-center gap-2">
-      <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold"
-           style="width:34px;height:34px;font-size:.8rem;">AD</div>
-      <span class="text-white small d-none d-md-inline">Admin</span>
-    </div>
-  </div>
-</nav>
-
-<div class="d-flex" style="min-height:calc(100vh - 56px);">
-
-  <!-- SIDEBAR -->
-  <div class="bg-dark text-white d-flex flex-column flex-shrink-0"
-       id="sidebar" style="width:240px;min-height:100%;">
-    <div class="p-3 border-bottom border-secondary">
-      <small class="text-secondary text-uppercase fw-semibold">Main Menu</small>
-    </div>
-    <ul class="nav flex-column p-2 gap-1">
-      <li class="nav-item">
-        <a href="{% url 'category-admin' %}" class="nav-link text-secondary px-3 py-2">
-          <i class="bi bi-grid-fill me-2"></i>Categories
-        </a>
-      </li>
-      <li class="nav-item">
-        <a href="{% url 'product-admin' %}" class="nav-link text-secondary px-3 py-2">
-          <i class="bi bi-box-seam me-2"></i>
-          <span class="fw-semibold">Products</span>
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'order-page' %}" class="nav-link text-secondary rounded-2 px-3 py-2">
-          <i class="bi bi-box-seam me-2"></i><span class="sidebar-label">Order History</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a href="{% url 'partner_list' %}" class="nav-link text-white bg-warning bg-opacity-10 px-3 py-2">
-          <i class="bi bi-people-fill text-warning me-2"></i>
-          <span class="text-warning fw-semibold">Pending Partners</span>
-        </a>
-      </li>
-    </ul>
-    <div class="mt-auto p-2 border-top border-secondary">
-      <a href="{% url 'login' %}" class="nav-link text-danger px-3 py-2">
-        <i class="bi bi-box-arrow-left me-2"></i>Logout
-      </a>
-    </div>
-  </div>
-
-  <!-- ✅ MAIN CONTENT — everything lives inside here -->
-  <div class="container-fluid py-4">
-
-    <!-- ===== PENDING PARTNERS ===== -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h3 class="fw-bold mb-1">Pending Partners</h3>
-        <p class="text-muted mb-0">Accept or reject partner requests</p>
+      <!-- ===== PENDING PARTNERS ===== -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="fw-bold mb-1">Pending Partners</h3>
+          <p class="text-muted mb-0">Accept or reject partner requests</p>
+        </div>
+        <button class="btn btn-dark" onclick="fetchPartners()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
       </div>
-      <button class="btn btn-dark" onclick="fetchPartners()">
-        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-      </button>
-    </div>
 
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body">
-        <div class="row g-2">
-          <div class="col-md-6">
-            <input type="text" id="searchInput" class="form-control"
-                   placeholder="Search partner..." oninput="filterPartners()">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <input type="text" id="searchInput" class="form-control" placeholder="Search partner..."
+                oninput="filterPartners()">
+            </div>
+            <div class="col-md-6 text-end">
+              <span id="partnerCount" class="text-muted small"></span>
+            </div>
           </div>
-          <div class="col-md-6 text-end">
-            <span id="partnerCount" class="text-muted small"></span>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-5">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="partnerTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== DELIVERY PARTNERS ===== -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="fw-bold mb-1">Delivery Partners</h3>
+          <p class="text-muted mb-0">All registered delivery personnel</p>
+        </div>
+        <button class="btn btn-dark" onclick="fetchDeliveryPartners()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <input type="text" id="dpSearchInput" class="form-control" placeholder="Search delivery partner..."
+                oninput="filterDeliveryPartners()">
+            </div>
+            <div class="col-md-6 text-end">
+              <span id="dpCount" class="text-muted small"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>User ID</th>
+                <th>Availability</th>
+              </tr>
+            </thead>
+            <tbody id="dpTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+    <!-- END MAIN CONTENT -->
+
+
+    <!-- END d-flex wrapper -->
+
+    <!-- VIEW MODAL -->
+    <div class="modal fade" id="viewPartnerModal">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title">Partner Details</h5>
+            <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Name</label>
+                <div class="form-control bg-light" id="v_name"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Email</label>
+                <div class="form-control bg-light" id="v_email"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Phone</label>
+                <div class="form-control bg-light" id="v_phone"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Status</label>
+                <div class="form-control bg-light" id="v_status"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-5">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Status</th>
-              <th class="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="partnerTableBody"></tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- ===== DELIVERY PARTNERS ===== -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h3 class="fw-bold mb-1">Delivery Partners</h3>
-        <p class="text-muted mb-0">All registered delivery personnel</p>
-      </div>
-      <button class="btn btn-dark" onclick="fetchDeliveryPartners()">
-        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-      </button>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body">
-        <div class="row g-2">
-          <div class="col-md-6">
-            <input type="text" id="dpSearchInput" class="form-control"
-                   placeholder="Search delivery partner..." oninput="filterDeliveryPartners()">
-          </div>
-          <div class="col-md-6 text-end">
-            <span id="dpCount" class="text-muted small"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Username</th>
-              <th>User ID</th>
-              <th>Availability</th>
-            </tr>
-          </thead>
-          <tbody id="dpTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-  <!-- END MAIN CONTENT -->
-
-</div>
-<!-- END d-flex wrapper -->
-
-<!-- VIEW MODAL -->
-<div class="modal fade" id="viewPartnerModal">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content border-0">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title">Partner Details</h5>
-        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Name</label>
-            <div class="form-control bg-light" id="v_name"></div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Email</label>
-            <div class="form-control bg-light" id="v_email"></div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Phone</label>
-            <div class="form-control bg-light" id="v_phone"></div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Status</label>
-            <div class="form-control bg-light" id="v_status"></div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script src="{% static 'js/partner_list-admin.js' %}"></script>
-
-
-</body>
-</html>
+{% endblock content %}
