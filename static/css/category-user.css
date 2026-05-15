@@ -1,0 +1,18 @@
+body {
+    background: #f5f7fb;
+}
+
+.product-card {
+    border: none;
+    transition: .2s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+}
+
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+}

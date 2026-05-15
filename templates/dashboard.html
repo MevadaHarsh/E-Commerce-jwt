@@ -16,57 +16,7 @@
     rel="stylesheet"
   />
 
-  <style>
-
-    body {
-      background: #f5f7fb;
-    }
-
-    .hero {
-      background:
-        linear-gradient(rgba(0,0,0,.6), rgba(0,0,0,.6)),
-        url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1600&auto=format&fit=crop');
-
-      background-size: cover;
-      background-position: center;
-      min-height: 420px;
-      color: white;
-      display: flex;
-      align-items: center;
-    }
-
-    .product-card {
-      transition: .2s ease;
-      border: none;
-    }
-
-    .product-card:hover {
-      transform: translateY(-4px);
-    }
-
-    .product-img {
-      height: 220px;
-      object-fit: cover;
-    }
-
-    .category-box {
-      transition: .2s;
-      cursor: pointer;
-    }
-
-    .category-box:hover {
-      background: #212529;
-      color: white;
-    }
-
-    .cart-badge {
-      position: absolute;
-      top: -5px;
-      right: -8px;
-      font-size: .7rem;
-    }
-
-  </style>
+  <style src="{% static 'css/dashboard.css' %} %}" ></style>
 </head>
 <body>
 

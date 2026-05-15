@@ -1,0 +1,50 @@
+body{
+    background:#f5f6fa;
+}
+
+.sidebar{
+    width:240px;
+    min-height:100vh;
+    background:#111827;
+}
+
+.sidebar a{
+    color:#cbd5e1;
+    text-decoration:none;
+    padding:12px 15px;
+    display:block;
+    border-radius:10px;
+    margin-bottom:5px;
+    transition:.2s;
+}
+
+.sidebar a:hover{
+    background:#1f2937;
+    color:#fff;
+}
+
+.sidebar .active{
+    background:#facc15;
+    color:#000 !important;
+    font-weight:600;
+}
+
+.table td,
+.table th{
+    vertical-align:middle;
+}
+
+.badge-active{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.badge-inactive{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.card{
+    border:none;
+    border-radius:15px;
+}
