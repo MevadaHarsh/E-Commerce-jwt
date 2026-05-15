@@ -1,91 +1,144 @@
-const API_LOGIN = '/api/login/';
 
-const ROLE_ROUTES = {
-  Admin    : '/product-admin/',
-  Visitor  : '/',
-  Delivery : '/dashboard-delivery/',
-};
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const API_LOGIN = '/api/login/';   // POST { username, password }
+// ─────────────────────────────────────────────────────────────────────────
 
-const ALERT_ICONS = {
-  danger  : 'bi-x-circle-fill',
-  success : 'bi-check-circle-fill',
-  warning : 'bi-exclamation-triangle-fill',
-};
-
-const $ = (id) => document.getElementById(id);
-
-// ── UI Helpers ────────────────────────────────────────────────────────────────
-
-function showAlert(msg, type) {
-  const el = $('login-alert');
-  el.className = `alert alert-${type} py-2 small d-flex align-items-center gap-2`;
-  el.innerHTML = `<i class="bi ${ALERT_ICONS[type]}"></i>${msg}`;
-  el.classList.remove('d-none');
-}
-
-const hideAlert = () => $('login-alert').classList.add('d-none');
-
-function setLoading(loading) {
-  $('loginSpinner').classList.toggle('d-none', !loading);
-  $('loginIcon').classList.toggle('d-none', loading);
-  $('loginBtn').disabled = loading;
-}
-
-// ── Events ────────────────────────────────────────────────────────────────────
-
-$('togglePass').addEventListener('click', () => {
-  const pwd = $('password');
-  const isHidden = pwd.type === 'password';
-  pwd.type = isHidden ? 'text' : 'password';
-  $('eyeIcon').className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+// Toggle password visibility
+document.getElementById('togglePass').addEventListener('click', function () {
+    var pwd  = document.getElementById('password');
+    var icon = document.getElementById('eyeIcon');
+    if (pwd.type === 'password') {
+    pwd.type = 'text';
+    icon.className = 'bi bi-eye-slash';
+    } else {
+    pwd.type = 'password';
+    icon.className = 'bi bi-eye';
+    }
 });
 
-document.addEventListener('keydown', (e) => e.key === 'Enter' && doLogin());
+// Enter key submits
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') doLogin();
+});
 
-// ── Login ─────────────────────────────────────────────────────────────────────
+function showAlert(msg, type) {
+    var el = document.getElementById('login-alert');
+    el.className = 'alert alert-' + type + ' py-2 small d-flex align-items-center gap-2';
+    var icon = type === 'danger' ? 'bi-x-circle-fill' : type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+    el.innerHTML = '<i class="bi ' + icon + '"></i>' + msg;
+    el.classList.remove('d-none');
+}
+
+function hideAlert() {
+    document.getElementById('login-alert').classList.add('d-none');
+}
+
+function setLoading(loading) {
+    document.getElementById('loginSpinner').classList.toggle('d-none', !loading);
+    document.getElementById('loginIcon').classList.toggle('d-none', loading);
+    document.getElementById('loginBtn').disabled = loading;
+}
 
 function validate() {
-  if (!$('username').value.trim()) return 'Please enter your username.';
-  if (!$('password').value)        return 'Please enter your password.';
-  return null;
+    var username = document.getElementById('username').value.trim();
+    var password = document.getElementById('password').value;
+    if (!username) return 'Please enter your username.';
+    if (!password) return 'Please enter your password.';
+    return null;
 }
 
 async function doLogin() {
+
   hideAlert();
 
-  const error = validate();
-  if (error) return showAlert(error, 'danger');
+  var error = validate();
+
+  if (error) {
+    showAlert(error, 'danger');
+    return;
+  }
+
+  var username = document.getElementById('username').value.trim();
+  var password = document.getElementById('password').value;
 
   setLoading(true);
 
   try {
-    const res  = await fetch(API_LOGIN, {
+
+    var res = await fetch(API_LOGIN, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        username: $('username').value.trim(),
-        password: $('password').value,
+        username: username,
+        password: password
       })
     });
 
-    const data = await res.json();
+    var data = await res.json();
 
-    if (res.ok) {
-      ['access', 'refresh', 'role'].forEach(k => data[k] && localStorage.setItem(k, data[k]));
-      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+    console.log(data);
+
+    if (res.status === 200 || res.status === 201) {
+
+      // Save tokens
+      if (data.access) {
+        localStorage.setItem('access', data.access);
+      }
+
+      if (data.refresh) {
+        localStorage.setItem('refresh', data.refresh);
+      }
+
+      // Save role
+      if (data.role) {
+        localStorage.setItem('role', data.role);
+      }
+
+      // Save user data
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
 
       showAlert('Login successful! Redirecting...', 'success');
-      setTimeout(() => {
-        window.location.href = ROLE_ROUTES[data.role] ?? '/';
+
+      setTimeout(function () {
+
+        // Redirect by role
+        if (data.role === 'Admin') {
+
+          window.location.href = '/product-admin/';
+
+        } else if (data.role === 'Visitor') {
+
+          window.location.href = '/';
+
+        } else if (data.role === 'Delivery') {
+
+          window.location.href = '/dashboard-delivery/';
+
+        } else {
+          alert("invalid")
+        }
+
       }, 1000);
 
     } else {
+
       showAlert(data.detail || 'Invalid credentials', 'danger');
+
     }
 
-  } catch {
+  } catch (error) {
+
+    console.log(error);
+
     showAlert('Server error occurred', 'danger');
+
   } finally {
+
     setLoading(false);
+
   }
 }
