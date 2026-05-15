@@ -1,144 +1,91 @@
+const API_LOGIN = '/api/login/';
 
-// ── CONFIG ────────────────────────────────────────────────────────────────
-const API_LOGIN = '/api/login/';   // POST { username, password }
-// ─────────────────────────────────────────────────────────────────────────
+const ROLE_ROUTES = {
+  Admin    : '/product-admin/',
+  Visitor  : '/',
+  Delivery : '/dashboard-delivery/',
+};
 
-// Toggle password visibility
-document.getElementById('togglePass').addEventListener('click', function () {
-    var pwd  = document.getElementById('password');
-    var icon = document.getElementById('eyeIcon');
-    if (pwd.type === 'password') {
-    pwd.type = 'text';
-    icon.className = 'bi bi-eye-slash';
-    } else {
-    pwd.type = 'password';
-    icon.className = 'bi bi-eye';
-    }
-});
+const ALERT_ICONS = {
+  danger  : 'bi-x-circle-fill',
+  success : 'bi-check-circle-fill',
+  warning : 'bi-exclamation-triangle-fill',
+};
 
-// Enter key submits
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') doLogin();
-});
+const $ = (id) => document.getElementById(id);
+
+// ── UI Helpers ────────────────────────────────────────────────────────────────
 
 function showAlert(msg, type) {
-    var el = document.getElementById('login-alert');
-    el.className = 'alert alert-' + type + ' py-2 small d-flex align-items-center gap-2';
-    var icon = type === 'danger' ? 'bi-x-circle-fill' : type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
-    el.innerHTML = '<i class="bi ' + icon + '"></i>' + msg;
-    el.classList.remove('d-none');
+  const el = $('login-alert');
+  el.className = `alert alert-${type} py-2 small d-flex align-items-center gap-2`;
+  el.innerHTML = `<i class="bi ${ALERT_ICONS[type]}"></i>${msg}`;
+  el.classList.remove('d-none');
 }
 
-function hideAlert() {
-    document.getElementById('login-alert').classList.add('d-none');
-}
+const hideAlert = () => $('login-alert').classList.add('d-none');
 
 function setLoading(loading) {
-    document.getElementById('loginSpinner').classList.toggle('d-none', !loading);
-    document.getElementById('loginIcon').classList.toggle('d-none', loading);
-    document.getElementById('loginBtn').disabled = loading;
+  $('loginSpinner').classList.toggle('d-none', !loading);
+  $('loginIcon').classList.toggle('d-none', loading);
+  $('loginBtn').disabled = loading;
 }
 
+// ── Events ────────────────────────────────────────────────────────────────────
+
+$('togglePass').addEventListener('click', () => {
+  const pwd = $('password');
+  const isHidden = pwd.type === 'password';
+  pwd.type = isHidden ? 'text' : 'password';
+  $('eyeIcon').className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+});
+
+document.addEventListener('keydown', (e) => e.key === 'Enter' && doLogin());
+
+// ── Login ─────────────────────────────────────────────────────────────────────
+
 function validate() {
-    var username = document.getElementById('username').value.trim();
-    var password = document.getElementById('password').value;
-    if (!username) return 'Please enter your username.';
-    if (!password) return 'Please enter your password.';
-    return null;
+  if (!$('username').value.trim()) return 'Please enter your username.';
+  if (!$('password').value)        return 'Please enter your password.';
+  return null;
 }
 
 async function doLogin() {
-
   hideAlert();
 
-  var error = validate();
-
-  if (error) {
-    showAlert(error, 'danger');
-    return;
-  }
-
-  var username = document.getElementById('username').value.trim();
-  var password = document.getElementById('password').value;
+  const error = validate();
+  if (error) return showAlert(error, 'danger');
 
   setLoading(true);
 
   try {
-
-    var res = await fetch(API_LOGIN, {
+    const res  = await fetch(API_LOGIN, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: username,
-        password: password
+        username: $('username').value.trim(),
+        password: $('password').value,
       })
     });
 
-    var data = await res.json();
+    const data = await res.json();
 
-    console.log(data);
-
-    if (res.status === 200 || res.status === 201) {
-
-      // Save tokens
-      if (data.access) {
-        localStorage.setItem('access', data.access);
-      }
-
-      if (data.refresh) {
-        localStorage.setItem('refresh', data.refresh);
-      }
-
-      // Save role
-      if (data.role) {
-        localStorage.setItem('role', data.role);
-      }
-
-      // Save user data
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
+    if (res.ok) {
+      ['access', 'refresh', 'role'].forEach(k => data[k] && localStorage.setItem(k, data[k]));
+      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
 
       showAlert('Login successful! Redirecting...', 'success');
-
-      setTimeout(function () {
-
-        // Redirect by role
-        if (data.role === 'Admin') {
-
-          window.location.href = '/product-admin/';
-
-        } else if (data.role === 'Visitor') {
-
-          window.location.href = '/';
-
-        } else if (data.role === 'Delivery') {
-
-          window.location.href = '/dashboard-delivery/';
-
-        } else {
-          alert("invalid")
-        }
-
+      setTimeout(() => {
+        window.location.href = ROLE_ROUTES[data.role] ?? '/';
       }, 1000);
 
     } else {
-
       showAlert(data.detail || 'Invalid credentials', 'danger');
-
     }
 
-  } catch (error) {
-
-    console.log(error);
-
+  } catch {
     showAlert('Server error occurred', 'danger');
-
   } finally {
-
     setLoading(false);
-
   }
 }

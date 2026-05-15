@@ -1,193 +1,115 @@
 let cartItems = [];
 
-function getToken() {
-  return localStorage.getItem("access");
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-document.getElementById("checkoutBtn").addEventListener("click", async () => {
+const getToken = () => localStorage.getItem("access");
 
-  const token = getToken();
-
-  const res = await fetch('/api/cart/', {
+const authFetch = (url, options = {}) =>
+  fetch(url, {
+    ...options,
     headers: {
-      "Authorization": `Bearer ${token}`
-    }
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
-  const data = await res.json();
-
-  // Check cart is empty
-  if (!data.cart_item || data.cart_item.length === 0) {
-    alert("Your cart is empty");
-    return;
-  }
-
-  // Go to checkout page
-  window.location.href = "/checkout/";
-
-});
+// ── Auth ─────────────────────────────────────────────────────────────────────
 
 function checkLogin() {
-  const token = getToken();
-
-  if (!token) {
-    // Redirect to login page
-    window.location.href = "/login/";
-  }
+  if (!getToken()) window.location.href = "/login/";
 }
 
-// Run check when page loads
 checkLogin();
 
-/* LOAD CART */
-async function loadCart() {
+// ── Cart API ─────────────────────────────────────────────────────────────────
 
-  const token = getToken();
+const fetchCart    = ()   => authFetch("/api/cart/").then(r => r.json());
+const fetchProduct = (id) => authFetch(`/api/product/${id}/`).then(r => r.json());
 
-  const res = await fetch('/api/cart/', {
-    headers: {
-      "Authorization": `Bearer ${token}`
-    }
-  });
-
-  const data = await res.json();
-
-  cartItems = data.cart_item || [];
-
-  renderCart();
-}
-
-/* GET PRODUCT */
-async function getProduct(id) {
-
-  const token = getToken();
-
-  const res = await fetch(`/api/product/${id}/`, {
-    headers: {
-      "Authorization": `Bearer ${token}`
-    }
-  });
-
-  return await res.json();
-}
-
-/* INCREASE */
-async function increaseQty(productId) {
-
-  const token = getToken();
-
-  const res = await fetch(`/api/increase/${productId}/`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
-    }
-  });
-
-  const data = await res.json();
-
-  const msgBox = document.getElementById(`msg-${productId}`);
-
-  if (res.ok) {
-
-    if (msgBox) msgBox.innerText = "";
-    loadCart();
-
-  } else {
-
-    if (msgBox) msgBox.innerText = data.message || "Out of stock ❌";
-
-    setTimeout(() => {
-      if (msgBox) msgBox.innerText = "";
-    }, 2500);
-  }
-}
-
-/* DECREASE */
-async function decreaseQty(productId) {
-
-  const token = getToken();
-
-  const res = await fetch(`/api/decrease/${productId}/`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
-    }
-  });
-
+async function updateQty(productId, action) {
+  const res  = await authFetch(`/api/${action}/${productId}/`, { method: "POST" });
   const data = await res.json();
 
   if (res.ok) {
     loadCart();
   } else {
-    alert(data.message || "Cannot decrease quantity");
+    if (action === "increase") {
+      const msgBox = document.getElementById(`msg-${productId}`);
+      if (msgBox) {
+        msgBox.innerText = data.message || "Out of stock ❌";
+        setTimeout(() => (msgBox.innerText = ""), 2500);
+      }
+    } else {
+      alert(data.message || "Cannot decrease quantity");
+    }
   }
 }
 
-/* RENDER CART */
+const increaseQty = (id) => updateQty(id, "increase");
+const decreaseQty = (id) => updateQty(id, "decrease");
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function cartRow(product, item) {
+  const total = product.price * item.quantity;
+  return { html: `
+    <tr>
+      <td>
+        <b>${product.name}</b><br>
+        <small class="text-muted">ID: ${item.Product}</small>
+        <div id="msg-${item.Product}" class="text-danger small"></div>
+      </td>
+      <td>₹${product.price}</td>
+      <td>
+        <div class="qty-box">
+          <button class="qty-btn" onclick="decreaseQty(${item.Product})">-</button>
+          <input  class="qty-input" value="${item.quantity}" readonly />
+          <button class="qty-btn" onclick="increaseQty(${item.Product})">+</button>
+        </div>
+      </td>
+      <td>₹${total}</td>
+      <td>
+        <button class="btn btn-sm btn-danger">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>`, total };
+}
+
 async function renderCart() {
-
   const container = document.getElementById("cartBody");
   container.innerHTML = "";
 
   let subtotal = 0;
 
-  for (let item of cartItems) {
-
-    const product = await getProduct(item.Product);
+  for (const item of cartItems) {
+    const product = await fetchProduct(item.Product);
     if (!product) continue;
 
-    const total = product.price * item.quantity;
+    const { html, total } = cartRow(product, item);
+    container.innerHTML += html;
     subtotal += total;
-
-    container.innerHTML += `
-      <tr>
-
-        <td>
-          <b>${product.name}</b><br>
-          <small class="text-muted">ID: ${item.Product}</small>
-
-          <!-- ITEM LEVEL MESSAGE -->
-          <div id="msg-${item.Product}" class="text-danger small"></div>
-        </td>
-
-        <td>₹${product.price}</td>
-
-        <td>
-          <div class="qty-box">
-
-            <button class="qty-btn"
-              onclick="decreaseQty(${item.Product})">
-              -
-            </button>
-
-            <input class="qty-input" value="${item.quantity}" readonly/>
-
-            <button class="qty-btn"
-              onclick="increaseQty(${item.Product})">
-              +
-            </button>
-
-          </div>
-        </td>
-
-        <td>₹${total}</td>
-
-        <td>
-          <button class="btn btn-sm btn-danger">
-            <i class="bi bi-trash"></i>
-          </button>
-        </td>
-
-      </tr>
-    `;
   }
 
-  document.getElementById("subtotal").innerText = "₹" + subtotal;
-  document.getElementById("total").innerText = "₹" + subtotal;
+  document.getElementById("subtotal").innerText = `₹${subtotal}`;
+  document.getElementById("total").innerText     = `₹${subtotal}`;
 }
 
+// ── Load ──────────────────────────────────────────────────────────────────────
 
+async function loadCart() {
+  const data = await fetchCart();
+  cartItems  = data.cart_item || [];
+  renderCart();
+}
+
+// ── Checkout ──────────────────────────────────────────────────────────────────
+
+document.getElementById("checkoutBtn").addEventListener("click", async () => {
+  const data = await fetchCart();
+  if (!data.cart_item?.length) return alert("Your cart is empty");
+  window.location.href = "/checkout/";
+});
 
 loadCart();

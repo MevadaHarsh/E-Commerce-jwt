@@ -1,7 +1,17 @@
-/* ---------- AUTH ---------- */
-function getToken() {
-  return localStorage.getItem('access');
-}
+const getToken = () => localStorage.getItem('access');
+
+const authFetch = (url, options = {}) =>
+  fetch(url, {
+    ...options,
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+const toINR  = (n)      => `₹${Number(n).toLocaleString('en-IN')}`;
+const setText = (id, v) => document.getElementById(id).textContent = v;
+const getField = (id)   => document.getElementById(id).value.trim();
 
 /* ---------- LOAD CART SUMMARY ---------- */
 async function loadSummary() {
@@ -13,22 +23,13 @@ async function loadSummary() {
   }
 
   try {
-    const res = await fetch('/api/cart/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json();
-
-    // API shape: { message, cart_item: [...], subtotal }
+    const res      = await authFetch('/api/cart/');
+    const data     = await res.json();
     const items    = data.cart_item || [];
     const subtotal = data.subtotal  || 0;
 
-    let html = '';
-
-    if (!items.length) {
-      html = `<p class="text-muted small">Cart is empty. <a href="/">Shop now</a>.</p>`;
-    } else {
-      items.forEach(item => {
-        html += `
+    let html = items.length
+      ? items.map(item => `
           <div class="summary-item">
             <div class="d-flex justify-content-between align-items-center gap-2">
               <div class="d-flex align-items-center gap-2">
@@ -42,14 +43,13 @@ async function loadSummary() {
               </div>
               <span class="badge bg-dark text-light rounded-pill px-2">COD</span>
             </div>
-          </div>`;
-      });
-    }
+          </div>`).join('')
+      : `<p class="text-muted small">Cart is empty. <a href="/">Shop now</a>.</p>`;
 
     document.getElementById('orderItems').innerHTML = html;
-    document.getElementById('subtotal').textContent   = `₹${Number(subtotal).toLocaleString('en-IN')}`;
-    document.getElementById('discount').textContent   = '—';
-    document.getElementById('grandTotal').textContent = `₹${Number(subtotal).toLocaleString('en-IN')}`;
+    setText('subtotal',   toINR(subtotal));
+    setText('discount',   '—');
+    setText('grandTotal', toINR(subtotal));
 
   } catch (e) {
     console.error(e);
@@ -57,30 +57,31 @@ async function loadSummary() {
 }
 
 /* ---------- VALIDATION ---------- */
+const FIELDS = [
+  { id: 'fullName', check: v => v.trim().length >= 2 },
+  { id: 'phone',    check: v => /^\d{10}$/.test(v.trim()) },
+  { id: 'address',  check: v => v.trim().length >= 5 },
+  { id: 'city',     check: v => v.trim().length >= 2 },
+  { id: 'state',    check: v => v.trim().length >= 2 },
+  { id: 'zip',      check: v => /^\d{6}$/.test(v.trim()) },
+];
+
 function validateForm() {
   let valid = true;
-
-  const fields = [
-    { id: 'fullName', check: v => v.trim().length >= 2 },
-    { id: 'phone',    check: v => /^\d{10}$/.test(v.trim()) },
-    { id: 'address',  check: v => v.trim().length >= 5 },
-    { id: 'city',     check: v => v.trim().length >= 2 },
-    { id: 'state',    check: v => v.trim().length >= 2 },
-    { id: 'zip',      check: v => /^\d{6}$/.test(v.trim()) },
-  ];
-
-  fields.forEach(f => {
-    const el = document.getElementById(f.id);
-    const ok = f.check(el.value);
+  FIELDS.forEach(({ id, check }) => {
+    const el = document.getElementById(id);
+    const ok = check(el.value);
     el.classList.toggle('is-invalid', !ok);
     el.classList.toggle('is-valid',    ok);
     if (!ok) valid = false;
   });
-
   return valid;
 }
 
 /* ---------- PLACE ORDER ---------- */
+const BTN_DEFAULT = `<i class="bi bi-bag-check-fill me-2"></i>Place Order`;
+const BTN_LOADING = `<span class="spinner-border spinner-border-sm me-2"></span>Placing Order…`;
+
 async function placeOrder() {
   if (!validateForm()) {
     document.querySelector('.is-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -88,69 +89,59 @@ async function placeOrder() {
   }
 
   const btn = document.getElementById('placeOrderBtn');
-  btn.disabled = true;
-  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Placing Order…`;
-
-  const token = getToken();
+  btn.disabled  = true;
+  btn.innerHTML = BTN_LOADING;
 
   try {
-    const res = await fetch('/api/checkout/', {
+    const res  = await authFetch('/api/checkout/', {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
       body: JSON.stringify({
-        full_name : document.getElementById('fullName').value.trim(),
-        phone     : document.getElementById('phone').value.trim(),
-        address   : document.getElementById('address').value.trim(),
-        city      : document.getElementById('city').value.trim(),
-        pincode   : document.getElementById('zip').value.trim(),
+        full_name : getField('fullName'),
+        phone     : getField('phone'),
+        address   : getField('address'),
+        city      : getField('city'),
+        pincode   : getField('zip'),
       })
     });
     const data = await res.json();
+
     if (res.ok) {
       showSuccess(data);
       loadSummary();
     } else {
       alert(data.message || "Failed to place order ❌");
-      btn.disabled = false;
-      btn.innerHTML = `<i class="bi bi-bag-check-fill me-2"></i>Place Order`;
+      btn.disabled  = false;
+      btn.innerHTML = BTN_DEFAULT;
     }
   } catch (error) {
     console.error(error);
     alert("Something went wrong while placing order");
-    btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-bag-check-fill me-2"></i>Place Order`;
+    btn.disabled  = false;
+    btn.innerHTML = BTN_DEFAULT;
   }
 }
 
 /* ---------- SUCCESS ---------- */
 function showSuccess(data) {
-  // Render ordered items from API response
-  const items = data.cart_item || [];
-  const subtotal = data.subtotal || 0;
+  const items    = data.cart_item || [];
+  const subtotal = data.subtotal  || 0;
 
-  let itemsHtml = items.map(item => `
-    <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
-      <div>
-        <div class="fw-semibold small">${item.product_name}</div>
-        <small class="text-muted">Qty: ${item.quantity}</small>
-      </div>
-      <span class="badge bg-success-subtle text-success fw-semibold">COD</span>
-    </div>
-  `).join('');
+  document.getElementById('successItems').innerHTML = items.length
+    ? items.map(item => `
+        <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+          <div>
+            <div class="fw-semibold small">${item.product_name}</div>
+            <small class="text-muted">Qty: ${item.quantity}</small>
+          </div>
+          <span class="badge bg-success-subtle text-success fw-semibold">COD</span>
+        </div>`).join('')
+    : `<p class="text-muted small mb-0">No item details available.</p>`;
 
-  if (!itemsHtml) {
-    itemsHtml = `<p class="text-muted small mb-0">No item details available.</p>`;
-  }
-
-  document.getElementById('successItems').innerHTML = itemsHtml;
-  document.getElementById('successTotal').textContent = `₹${Number(subtotal).toLocaleString('en-IN')}`;
+  setText('successTotal', toINR(subtotal));
 
   document.getElementById('successOverlay').classList.add('show');
-  ['step3','step4'].forEach(s => document.getElementById(s).classList.add('done'));
-  ['line2','line3'].forEach(l => document.getElementById(l).classList.add('done'));
+  ['step3', 'step4'].forEach(id => document.getElementById(id).classList.add('done'));
+  ['line2', 'line3'].forEach(id => document.getElementById(id).classList.add('done'));
 }
 
 function closeOverlay() {

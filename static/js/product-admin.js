@@ -1,243 +1,137 @@
 const API_PRODUCTS = '/api/product/';
 const API_CATEGORY = '/api/category/';
 
-let products = [];
+let products   = [];
 let categories = [];
 
-/* ---------- AUTH HEADER ---------- */
-function apiHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('access')}`
-  };
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-/* ---------- FETCH CATEGORIES ---------- */
+const apiHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('access')}`
+});
+
+const apiFetch      = (url, options = {}) => fetch(url, { ...options, headers: apiHeaders() });
+const $             = (id) => document.getElementById(id);
+const getVal        = (id) => $(id).value;
+const getCategoryName = (id) => categories.find(x => x.id == id)?.name ?? 'Unknown';
+const getModal      = (id) => bootstrap.Modal.getInstance($(id));
+const showModal     = (id) => new bootstrap.Modal($(id)).show();
+const hideModal     = (id) => getModal(id).hide();
+
+// ── Categories ────────────────────────────────────────────────────────────────
+
 async function fetchCategories() {
-
-  const res = await fetch(API_CATEGORY, { headers: apiHeaders() });
-  const data = await res.json();
-
+  const data = await apiFetch(API_CATEGORY).then(r => r.json());
   categories = Array.isArray(data) ? data : data.results;
-
   loadCategoryDropdowns();
 }
 
-/* ---------- LOAD DROPDOWNS ---------- */
 function loadCategoryDropdowns() {
+  const options = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
-  const add = document.getElementById('newProdCat');
-  const edit = document.getElementById('editProdCat');
-  const filter = document.getElementById('prodCatFilter');
-
-  add.innerHTML = '<option value="">Select</option>';
-  edit.innerHTML = '';
-  filter.innerHTML = '<option value="">All Categories</option>';
-
-  categories.forEach(c => {
-
-    add.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-    edit.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-    filter.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-  });
+  $('newProdCat').innerHTML  = `<option value="">Select</option>${options}`;
+  $('editProdCat').innerHTML = options;
+  $('prodCatFilter').innerHTML = `<option value="">All Categories</option>${options}`;
 }
 
-/* ---------- STOCK INLINE UPDATE ---------- */
-async function updateStock(id, value) {
+// ── Products ──────────────────────────────────────────────────────────────────
 
-  const stock = Number(value); // ✔ FIX
-
-  if (!Number.isFinite(stock)) return;
-
-  const res = await fetch(API_PRODUCTS + id + '/', {
-    method: 'PATCH',
-    headers: apiHeaders(),
-    body: JSON.stringify({ stock: value })
-  });
-
-  if (res.ok) {
-    fetchProducts();
-  } else {
-    alert("Stock update failed");
-  }
+async function fetchProducts() {
+  products = await apiFetch(API_PRODUCTS).then(r => r.json());
+  renderProducts(products);
 }
 
-/* ---------- RENDER PRODUCTS ---------- */
 function renderProducts(list) {
-
-  document.getElementById('prodCount').innerText =
-    `Showing ${list.length}`;
-
-  const tbody = document.getElementById('prodTableBody');
-
-  tbody.innerHTML = list.map((p, i) => `
+  $('prodCount').innerText = `Showing ${list.length}`;
+  $('prodTableBody').innerHTML = list.map((p, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${p.name}</td>
       <td>${getCategoryName(p.category)}</td>
       <td>₹${p.price}</td>
-
-      <!-- INLINE STOCK -->
       <td>
-        <input type="number"
-               value="${p.stock}"
-               class="form-control form-control-sm"
-               style="width:90px"
-               onchange="updateStock(${p.id}, this.value)">
+        <input type="number" value="${p.stock}" class="form-control form-control-sm"
+               style="width:90px" onchange="updateStock(${p.id}, this.value)">
       </td>
-
       <td>
         <span class="badge ${p.is_available ? 'bg-success' : 'bg-danger'}">
           ${p.is_available ? 'Active' : 'Inactive'}
         </span>
       </td>
-
       <td class="text-center">
-        <button class="btn btn-sm btn-warning" onclick="openEditProd(${p.id})">
-          <i class="bi bi-pencil"></i>
-        </button>
-
-        <button class="btn btn-sm btn-danger" onclick="openDeleteProd(${p.id})">
-          <i class="bi bi-trash"></i>
-        </button>
+        <button class="btn btn-sm btn-warning" onclick="openEditProd(${p.id})"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-danger"  onclick="openDeleteProd(${p.id})"><i class="bi bi-trash"></i></button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
-/* ---------- CATEGORY NAME ---------- */
-function getCategoryName(id) {
-  const c = categories.find(x => x.id == id);
-  return c ? c.name : 'Unknown';
+// ── Stock ─────────────────────────────────────────────────────────────────────
+
+async function updateStock(id, value) {
+  const stock = Number(value);
+  if (!Number.isFinite(stock)) return;
+  const res = await apiFetch(`${API_PRODUCTS}${id}/`, { method: 'PATCH', body: JSON.stringify({ stock: value }) });
+  res.ok ? fetchProducts() : alert("Stock update failed");
 }
 
-/* ---------- FETCH PRODUCTS ---------- */
-async function fetchProducts() {
-
-  const res = await fetch(API_PRODUCTS, { headers: apiHeaders() });
-  products = await res.json();
-
-  renderProducts(products);
-}
-
-/* ---------- OPEN EDIT ---------- */
-function openEditProd(id) {
-
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-
-  document.getElementById('editProdId').value = p.id;
-  document.getElementById('editProdName').value = p.name;
-  document.getElementById('editProdCat').value = p.category;
-  document.getElementById('editProdPrice').value = p.price;
-
-  new bootstrap.Modal(
-    document.getElementById('editProductModal')
-  ).show();
-}
-
-/* ---------- SAVE EDIT ---------- */
-async function saveProductEdit() {
-
-  const id = document.getElementById('editProdId').value;
-
-  const body = {
-    name: document.getElementById('editProdName').value,
-    category: document.getElementById('editProdCat').value,
-    price: document.getElementById('editProdPrice').value,
-  };
-
-  const res = await fetch(API_PRODUCTS + id + '/', {
-    method: 'PATCH',
-    headers: apiHeaders(),
-    body: JSON.stringify(body)
-  });
-
-  if (res.ok) {
-
-    bootstrap.Modal.getInstance(
-      document.getElementById('editProductModal')
-    ).hide();
-
-    fetchProducts();
-
-  } else {
-    alert("Update failed");
-  }
-}
-
-/* ---------- DELETE ---------- */
-function openDeleteProd(id) {
-  document.getElementById('deleteProdId').value = id;
-
-  new bootstrap.Modal(
-    document.getElementById('deleteProdModal')
-  ).show();
-}
-
-async function confirmDeleteProd() {
-
-  const id = document.getElementById('deleteProdId').value;
-
-  const res = await fetch(API_PRODUCTS + id + '/', {
-    method: 'DELETE',
-    headers: apiHeaders()
-  });
-
-  if (res.ok) {
-
-    // close modal
-    const modalEl = document.getElementById('deleteProdModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    modal.hide();
-
-    fetchProducts();
-  }
-}
+// ── Add ───────────────────────────────────────────────────────────────────────
 
 async function addProduct() {
-
   const body = {
-    name: document.getElementById('newProdName').value,
-    category: document.getElementById('newProdCat').value,
-    price: document.getElementById('newProdPrice').value,
-    stock: document.getElementById('newProdStock').value,
+    name     : getVal('newProdName'),
+    category : getVal('newProdCat'),
+    price    : getVal('newProdPrice'),
+    stock    : getVal('newProdStock'),
   };
 
-  // basic validation
-  if (!body.name || !body.category || !body.price || !body.stock) {
-    alert("Please fill all fields");
-    return;
-  }
+  if (Object.values(body).some(v => !v)) return alert("Please fill all fields");
 
-  const res = await fetch(API_PRODUCTS, {
-    method: "POST",
-    headers: apiHeaders(),
-    body: JSON.stringify(body)
-  });
-
+  const res = await apiFetch(API_PRODUCTS, { method: 'POST', body: JSON.stringify(body) });
   if (res.ok) {
-
-    // close modal
-    bootstrap.Modal.getInstance(
-      document.getElementById('addProductModal')
-    ).hide();
-
-    // clear fields
-    document.getElementById('newProdName').value = "";
-    document.getElementById('newProdPrice').value = "";
-    document.getElementById('newProdStock').value = "";
-    document.getElementById('newProdCat').value = "";
-
-    fetchProducts(); // refresh table
-
+    hideModal('addProductModal');
+    ['newProdName', 'newProdPrice', 'newProdStock', 'newProdCat'].forEach(id => $(id).value = '');
+    fetchProducts();
   } else {
-
     const err = await res.json();
     alert(err.message || "Add product failed ❌");
   }
 }
 
-/* ---------- INIT ---------- */
+// ── Edit ──────────────────────────────────────────────────────────────────────
+
+function openEditProd(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  ['editProdId', 'editProdName', 'editProdCat', 'editProdPrice']
+    .forEach(field => $(field).value = p[field.replace('editProd', '').toLowerCase()]);
+  showModal('editProductModal');
+}
+
+async function saveProductEdit() {
+  const id   = getVal('editProdId');
+  const body = {
+    name     : getVal('editProdName'),
+    category : getVal('editProdCat'),
+    price    : getVal('editProdPrice'),
+  };
+  const res = await apiFetch(`${API_PRODUCTS}${id}/`, { method: 'PATCH', body: JSON.stringify(body) });
+  res.ok ? (hideModal('editProductModal'), fetchProducts()) : alert("Update failed");
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+
+function openDeleteProd(id) {
+  $('deleteProdId').value = id;
+  showModal('deleteProdModal');
+}
+
+async function confirmDeleteProd() {
+  const res = await apiFetch(`${API_PRODUCTS}${getVal('deleteProdId')}/`, { method: 'DELETE' });
+  if (res.ok) { hideModal('deleteProdModal'); fetchProducts(); }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
 fetchCategories();
 fetchProducts();
