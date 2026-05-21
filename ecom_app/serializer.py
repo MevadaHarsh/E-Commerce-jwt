@@ -58,10 +58,11 @@ class Cart_item_Serializer(serializers.ModelSerializer):
         
 class Checkoutserializer(serializers.ModelSerializer):
     partner_name = serializers.CharField(source='delivery_partner.user.username', read_only=True)
+    is_available = serializers.CharField(source='delivery_partner.is_available', read_only=True)
     class Meta:
         model = Checkout
         fields = '__all__'
-        read_only_fields = ['total_price', 'Product','user', 'quantity', 'partner_name']
+        read_only_fields = ['total_price', 'Product','user', 'quantity', 'partner_name', 'is_available']
         
         
 class PendingpartnerSerializer(serializers.ModelSerializer):

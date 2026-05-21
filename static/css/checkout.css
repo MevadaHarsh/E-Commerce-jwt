@@ -70,18 +70,17 @@ body {
     border: 2px solid #dee2e6;
     border-radius: 12px;
     cursor: pointer;
-    transition: .2s;
+    transition: border-color 0.2s, background-color 0.2s;
     background: #fff;
+    margin-bottom: 12px;
 }
 .payment-option:hover {
     border-color: #ffc107;
     background: #fffbf0;
 }
 .payment-option input[type="radio"] { display: none; }
-.payment-option.selected {
-    border-color: #ffc107;
-    background: #fff8e1;
-}
+
+/* Default check icon — hidden */
 .payment-option .check-icon {
     width: 22px;
     height: 22px;
@@ -92,13 +91,31 @@ body {
     justify-content: center;
     font-size: .7rem;
     color: transparent;
-    transition: .2s;
+    background: transparent;
+    transition: all 0.2s;
     flex-shrink: 0;
+}
+
+/* COD selected */
+.payment-option.selected {
+    border-color: #ffc107;
+    background: #fff8e1;
 }
 .payment-option.selected .check-icon {
     background: #ffc107;
     border-color: #ffc107;
     color: #212529;
+}
+
+/* Online selected overrides */
+#opt-online.selected {
+    border-color: #3395ff;
+    background: #f0f7ff;
+}
+#opt-online.selected .check-icon {
+    background: #3395ff;
+    border-color: #3395ff;
+    color: #fff;
 }
 
 /* ---- ORDER SUMMARY ---- */
@@ -203,3 +220,4 @@ body {
 @media (max-width: 767px) {
     .step-label { font-size: .62rem; }
 }
+

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 REST_FRAMEWORK = {
@@ -56,7 +57,8 @@ from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    # "ROTATE_REFRESH_TOKENS": False,
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 CORS_ALLOWED_ORIGINS = ['http://127.0.0.1:8000']
@@ -177,3 +179,8 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = "harshmevada03@gmail.com"
 
 EMAIL_HOST_PASSWORD = "hcqk mgqs flzi pogb"
+
+
+RAZORPAY_KEY_ID = "rzp_test_SrdDOI66t4YIf5"
+RAZORPAY_KEY_SECRET = "PZS92rf4AMZ0EjLq1tLnyJhi"
+RAZORPAY_CALLBACK_URL = "http://127.0.0.1:8000/payment-verify/"

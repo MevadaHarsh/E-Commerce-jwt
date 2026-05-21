@@ -17,3 +17,5 @@ admin.site.register(Checkout)
 admin.site.register(Pendingpartner)
 
 admin.site.register(DeliveryPartner)
+
+admin.site.register(Order)

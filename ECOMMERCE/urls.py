@@ -73,13 +73,13 @@ urlpatterns = [
     path('api/checkout-view/', CheckoutList.as_view(), name='api-checkout-view'),
     
     path('api/Order-status/<int:pk>/', DeliveryStatusUpdateView.as_view(), name='Orderstatusupdate'),
-    path('api/delivery-partners/', DeliveryPartnerView.as_view(), name='delivery-partners'),
+    path('api/delivery-partners/', DeliveryPartnerLISTView.as_view(), name='delivery-partners'),
     
     
-    
+    path("api/razorpay/create-order/",CreateOrder.as_view()),
+    path("payment-verify/",PaymentCallbackView.as_view(), name="payment-verify"),
     # path('api/Pendingpartner/', PendingpartnerView.as_view(), name='PendingpartnerView'),
-    
-    
+
     
     # path('api/order-list/', Orderlist.as_view(), name='order-list'),
     

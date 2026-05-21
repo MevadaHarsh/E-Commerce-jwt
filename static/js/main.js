@@ -84,6 +84,7 @@ function startTimer(seconds) {
     timerInterval = setInterval(tick, 1000);
 }
 
+
 function goToStep(n) {
     [1, 2, 3].forEach(function (i) {
     document.getElementById('step' + i).classList.add('d-none');
@@ -105,10 +106,12 @@ function goToStep(n) {
     else        document.getElementById('line2').classList.remove('border-success');
 }
 
+
 function goBack() {
     clearInterval(timerInterval);
     goToStep(1);
 }
+
 
 async function sendOtp() {
     hideAlert('reg-alert');
@@ -173,7 +176,9 @@ showAlert(
 return;
 }
 
+
 var email = document.getElementById('verifyEmail').value.trim();
+
 
 setLoading(
 'verifySpinner',

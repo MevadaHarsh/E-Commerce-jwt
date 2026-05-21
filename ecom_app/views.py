@@ -10,7 +10,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.views.generic import TemplateView
-
+import razorpay
 
 
 class register(TemplateView):
@@ -616,6 +616,102 @@ class DeliveryStatusUpdateView(APIView):
     
     
     
-class DeliveryPartnerView(ListAPIView):
+class DeliveryPartnerLISTView(ListAPIView):
     queryset = DeliveryPartner.objects.all()
     serializer_class = DeliveryPartnerSerializer
+    
+    
+    
+class CreateOrder(APIView):
+    def post(self, request):
+        amount = int(request.data.get('amount'))
+        
+        client = razorpay.Client(
+            auth=(
+                settings.RAZORPAY_KEY_ID,
+                settings.RAZORPAY_KEY_SECRET
+            )
+        )
+        
+        payment = client.order.create({
+            "amount": amount,
+            "currency": "INR",
+            # "payment_capture":1
+        })
+        
+        Order.objects.create(
+            user = request.user,
+            amount = amount,
+            razorpay_order_id = payment["id"]
+        )
+        
+        return Response({
+            "order_id":payment["id" ],
+            "amount": payment["amount"],
+            "key":settings.RAZORPAY_KEY_ID,
+            "razorpay_callback_url":settings.RAZORPAY_CALLBACK_URL
+        })
+        
+
+class PaymentCallbackView(APIView):
+
+    def post(self, request):
+
+        order_id = request.data.get("razorpay_order_id")
+        payment_id = request.data.get("razorpay_payment_id")
+        signature = request.data.get("razorpay_signature")
+
+        client = razorpay.Client(
+            auth=(
+                settings.RAZORPAY_KEY_ID,
+                settings.RAZORPAY_KEY_SECRET
+            )
+        )
+
+        try:
+            # VERIFY SIGNATURE
+            client.utility.verify_payment_signature({
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": signature
+            })
+
+            order = Order.objects.get(
+                razorpay_order_id=order_id
+            )
+
+            # FETCH PAYMENT DETAILS
+            payment = client.payment.fetch(payment_id)
+
+            print(payment)
+
+            # CAPTURE ONLY IF AUTHORIZED
+            if payment["status"] == "authorized":
+
+                capture = client.payment.capture(
+                    payment_id,
+                    payment["amount"]
+                )
+
+                print(capture)
+
+            # SAVE
+            order.razorpay_payment_id = payment_id
+            order.razorpay_signature = signature
+            order.paid = True
+            order.save()
+
+            return Response({
+                "message": "Payment Captured Successfully"
+            })
+
+        except razorpay.errors.SignatureVerificationError:
+            return Response({
+                "message": "Signature Verification Failed"
+            }, status=400)
+
+        except Exception as e:
+            print(e)
+            return Response({
+                "message": str(e)
+            }, status=500)

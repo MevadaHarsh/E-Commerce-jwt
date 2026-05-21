@@ -1,4 +1,4 @@
-    const API_SEND_OTP   = '/api/register/';
+    const API_SEND_FOR   = '/api/register/';
     const API_VERIFY_OTP = '/api/verify-delivery/';
 
     var timerInterval = null;
@@ -115,7 +115,7 @@
 
       setLoading('sendOtpSpinner', 'sendOtpIcon', 'sendOtpBtn', true);
       try {
-        var res = await fetch(API_SEND_OTP, {
+        var res = await fetch(API_SEND_FOR, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, email: email, password: password })
@@ -147,6 +147,7 @@
       var inputs = document.querySelectorAll('.otp-input');
       var otp = Array.from(inputs).map(function (i) { return i.value; }).join('');
 
+      
       if (otp.length < 6) {
         showAlert('otp-alert', 'Please enter the complete 6-digit OTP.', 'danger');
         return;
@@ -201,7 +202,7 @@
       var password = document.getElementById('password').value;
       document.getElementById('resendBtn').disabled = true;
       try {
-        var res  = await fetch(API_SEND_OTP, {
+        var res  = await fetch(API_SEND_FOR, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, email: email, password: password })

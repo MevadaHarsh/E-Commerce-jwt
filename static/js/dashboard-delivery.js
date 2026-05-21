@@ -33,20 +33,29 @@ async function checkDeliveryAccess() {
 
 async function fetchOrders() {
   try {
-    const res  = await fetch(ORDERS_API, { headers: apiHeaders() });
+
+    const res  = await fetch(ORDERS_API, {
+      headers: apiHeaders()
+    });
+
     const data = await res.json();
 
-    /* data is an array — grab the first element */
-    const partnerData = Array.isArray(data) ? data[0] : data;
+    console.log(data);
 
-    if (!partnerData) {
-      console.warn('Empty response from API');
-      return;
+    // API directly returns orders array
+    orders = Array.isArray(data) ? data : [];
+
+    // show partner info using first order
+    if (orders.length > 0) {
+
+      const firstOrder = orders[0];
+
+      showPartnerInfo({
+        username: firstOrder.partner_name,
+        is_available: firstOrder.is_available === "True"
+      });
     }
 
-    /* extract orders list and partner meta */
-    orders = partnerData.checkout_list || [];
-    showPartnerInfo(partnerData);
     renderOrders();
 
   } catch (err) {

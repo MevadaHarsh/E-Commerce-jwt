@@ -49,7 +49,6 @@ class product(models.Model):
         return self.name
     
     
-    
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     
@@ -114,7 +113,22 @@ class Checkout(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     delivery_partner = models.ForeignKey(DeliveryPartner, on_delete=models.CASCADE, null=True, related_name='checkout_list')
     status=models.CharField(max_length=50, default="Pending")
-    cancel_reason = models.CharField(max_length=100, default="N/A")
+    cancel_reason = models.CharField(max_length=100, default="N/A", null=True)
+    
 
     def __str__(self):
         return f"{self.user.username}"
+    
+    
+    
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.IntegerField(null=True)
+    razorpay_order_id = models.CharField(max_length=255, null=True, blank=True)
+    razorpay_payment_id  = models.CharField(max_length=255, null=True, blank=True)
+    razorpay_signature = models.CharField(max_length=255, null=True, blank=True) 
+    is_paid = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    
+    def __str__(self):
+        return self.user.username
