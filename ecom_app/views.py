@@ -604,8 +604,7 @@ class DeliveryStatusUpdateView(APIView):
 
             partner.is_available = False
             partner.save()
-        
-        
+             
     
         
 
