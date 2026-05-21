@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.views.generic import TemplateView
 import razorpay
-
+from .pagination import MypagenumberPagination
 
 class register(TemplateView):
     template_name = "index.html"
@@ -619,6 +619,7 @@ class DeliveryStatusUpdateView(APIView):
 class DeliveryPartnerLISTView(ListAPIView):
     queryset = DeliveryPartner.objects.all()
     serializer_class = DeliveryPartnerSerializer
+    pagination_class = MypagenumberPagination
     
     
     

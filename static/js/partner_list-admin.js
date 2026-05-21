@@ -99,27 +99,54 @@ async function updatePartnerStatus(id, accept) {
    DELIVERY PARTNERS
    ======================================== */
 const API_DELIVERY_PARTNERS = '/api/delivery-partners/';
-let deliveryPartners = [];
 
-async function fetchDeliveryPartners() {
+let deliveryPartners = [];
+let nextPage = null;
+let previousPage = null;
+
+async function fetchDeliveryPartners(url = API_DELIVERY_PARTNERS) {
   try {
-    const res = await fetch(API_DELIVERY_PARTNERS, { headers: apiHeaders() });
+    const res = await fetch(url, {
+      headers: apiHeaders()
+    });
+
     const data = await res.json();
-    deliveryPartners = Array.isArray(data) ? data : (data.results || []);
+
+    // pagination data
+    nextPage = data.next;
+    previousPage = data.previous;
+
+    // actual records
+    deliveryPartners = data.results || [];
+
     renderDeliveryPartners(deliveryPartners);
+
+    // update pagination buttons
+    updatePaginationButtons();
+
   } catch (err) {
     console.error(err);
-    // alert("Failed to fetch delivery partners");
   }
 }
 
 function renderDeliveryPartners(list) {
-  document.getElementById('dpCount').innerText = `Showing ${list.length} partners`;
+
+  document.getElementById('dpCount').innerText =
+    `Showing ${list.length} partners`;
+
   const tbody = document.getElementById('dpTableBody');
+
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No delivery partners found</td></tr>`;
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="text-center py-4 text-muted">
+          No delivery partners found
+        </td>
+      </tr>
+    `;
     return;
   }
+
   tbody.innerHTML = list.map((p, i) => `
     <tr>
       <td>${i + 1}</td>
@@ -127,7 +154,6 @@ function renderDeliveryPartners(list) {
       <td>${p.user || '-'}</td>
       <td>
         <span class="badge ${p.is_available ? 'bg-success' : 'bg-secondary'}">
-          <i class="bi bi-circle-fill me-1" style="font-size:.5rem;vertical-align:middle;"></i>
           ${p.is_available ? 'Available' : 'Unavailable'}
         </span>
       </td>
@@ -135,14 +161,41 @@ function renderDeliveryPartners(list) {
   `).join('');
 }
 
+function updatePaginationButtons() {
+
+  document.getElementById('prevBtn').disabled = !previousPage;
+
+  document.getElementById('nextBtn').disabled = !nextPage;
+}
+
+function nextPageData() {
+  if (nextPage) {
+    fetchDeliveryPartners(nextPage);
+  }
+}
+
+function previousPageData() {
+  if (previousPage) {
+    fetchDeliveryPartners(previousPage);
+  }
+}
+
 function filterDeliveryPartners() {
-  const q = document.getElementById('dpSearchInput').value.toLowerCase();
+
+  const q = document.getElementById('dpSearchInput')
+    .value
+    .toLowerCase();
+
   const filtered = deliveryPartners.filter(p =>
     (p.username || '').toLowerCase().includes(q) ||
     String(p.user).includes(q)
   );
+
   renderDeliveryPartners(filtered);
 }
+
+// first load
+fetchDeliveryPartners();
 
 /* ---------- INIT ---------- */
 fetchPartners();
